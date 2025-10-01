@@ -93,7 +93,6 @@ function Table({ children }) {
 function Card({ card, faceUp = true }) {
   if (!faceUp) return <div className="card back" />;
 
-  // Guard against missing card data
   if (!card || !card.rank || !card.suit) {
     return <div className="card back" />;
   }
@@ -172,8 +171,9 @@ export default function App() {
   function dealRound() {
     if (nextTimer.current) { clearTimeout(nextTimer.current); nextTimer.current = null; }
 
-    if (bankroll < bet || bet <= 0) {
-      setMessage(bet <= 0 ? "Place a bet to continue." : "Not enough chips! Game over.");
+    // ✅ allow negative bankroll, just keep playing
+    if (bet <= 0) {
+      setMessage("Place a valid bet to continue.");
       setInRound(false);
       return;
     }
@@ -268,22 +268,20 @@ export default function App() {
         {/* 🎶 Jazz Music */}
         <audio ref={audioRef} src="/jazz.mp3" loop />
         <button 
-  className="music-btn"
-  onClick={() => setIsPlaying(!isPlaying)}
->
-  {isPlaying ? "🎶 Pause Jazz" : "🎵 Play Jazz"}
-</button>
+          className="music-btn"
+          onClick={() => setIsPlaying(!isPlaying)}
+        >
+          {isPlaying ? "🎶 Pause Jazz" : "🎵 Play Jazz"}
+        </button>
 
-
-                {/* status */}
-                <div className="status">
+        {/* status */}
+        <div className="status">
           <div>Bet: {bet} • Bankroll: {bankroll}</div>
           <div className="msg">{message}</div>
           <div className="helper-tip">
              Drag your chips to the bet circle to add, or use buttons to remove them.
           </div>
         </div>
-
 
         {/* chips */}
         <div className="chips">
@@ -299,7 +297,7 @@ export default function App() {
           <Hand title="Player" cards={playerHands[0] || []} />
         </Table>
 
-                {/* actions */}
+        {/* actions */}
         <div className="controls">
           <button className="hit" onClick={playerHit} disabled={!inRound}>
             Hit
@@ -309,12 +307,10 @@ export default function App() {
           </button>
         </div>
 
-        {/* disclaimer / fun text */}
         <p className="disclaimer">
-           Some cards may be blank. I call it <strong>mystery cards</strong>. Good luck!
+          Some cards may be blank. I call it <strong>mystery cards</strong>. Good luck!
         </p>
-      </div> {/* closes layout */}
+      </div>
     </DndProvider>
   );
 }
-
