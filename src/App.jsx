@@ -1,381 +1,237 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useMemo, useState, useRef } from "react";
 import "./App.css";
+import RouletteWheel from "./components/RouletteWheel";
+import BettingBoard from "./components/BettingBoard";
+import ChipPalette from "./components/ChipPalette";
+import Controls from "./components/Controls";
+import CasinoIOU from "./components/CasinoIOU";   // NEW COMPONENT
+import {
+  WHEEL_ORDER,
+  SEGMENT_ANGLE,
+  numberColor,
+  colorName,
+  isWinningForSpot,
+  PAYOUTS,
+} from "./utils/roulette";
 
-/* ===== Drag & Drop (react-dnd) ===== */
-import { DndProvider, useDrag, useDrop } from "react-dnd";
-import { HTML5Backend } from "react-dnd-html5-backend";
-const ItemTypes = { CHIP: "chip" };
-
-/* ---------- Draggable Chips ---------- */
-function DraggableChip({ value, color }) {
-  const [{ isDragging }, drag] = useDrag(() => ({
-    type: ItemTypes.CHIP,
-    item: { value },
-    collect: (monitor) => ({ isDragging: monitor.isDragging() }),
-  }));
-  return (
-    <div
-      ref={drag}
-      className={`chip ${color}`}
-      style={{ opacity: isDragging ? 0.5 : 1 }}
-      title={`Drag ${value} onto the bet circle`}
-    >
-      {value}
-    </div>
-  );
-}
-
-/* ---------- Bet Drop Zone ---------- */
-function BetZone({ bet, setBet }) {
-  const [, drop] = useDrop(() => ({
-    accept: ItemTypes.CHIP,
-    drop: (item) => setBet((prev) => prev + item.value),
-  }));
-
-  const dec = (amt) => setBet((prev) => Math.max(0, prev - amt));
-
-  return (
-    <div ref={drop} className="bet-zone">
-      <p>Next Bet</p>
-      <p style={{ fontSize: "1.4rem" }}>{bet}</p>
-      <div className="bet-adjust">
-        <button onClick={() => dec(25)}>-25</button>
-        <button onClick={() => dec(50)}>-50</button>
-        <button onClick={() => dec(100)}>-100</button>
-      </div>
-    </div>
-  );
-}
-
-/* ======== Blackjack helpers ======== */
-const SUITS = ["♠", "♥", "♦", "♣"];
-const RANKS = ["A","2","3","4","5","6","7","8","9","10","J","Q","K"];
-
-function buildDeck() {
-  const deck = [];
-  for (const s of SUITS) {
-    for (const r of RANKS) {
-      deck.push({ rank: r, suit: s, id: `${r}${s}` });
-    }
-  }
-  return deck;
-}
-function shuffle(arr) {
-  const a = arr.slice();
-  for (let i=a.length-1; i>0; i--) {
-    const j = Math.floor(Math.random()*(i+1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-function cardValue(rank) {
-  if (rank === "A") return 11;
-  if (["K","Q","J"].includes(rank)) return 10;
-  return parseInt(rank, 10);
-}
-function handTotal(cards) {
-  let total = 0, aces = 0;
-  for (const c of cards) {
-    total += cardValue(c.rank);
-    if (c.rank === "A") aces++;
-  }
-  while (total > 21 && aces > 0) {
-    total -= 10;
-    aces--;
-  }
-  return total;
-}
-
-/* ---------- Visual primitives ---------- */
-function Table({ children }) {
-  return <div className="table">{children}</div>;
-}
-function Card({ card, faceUp = true }) {
-  if (!faceUp) return <div className="card back" />;
-
-  if (!card || !card.rank || !card.suit) {
-    return <div className="card back" />;
-  }
-
-  const isRed = card.suit === "♥" || card.suit === "♦";
-
-  return (
-    <div className={`card ${isRed ? "red" : ""}`}>
-      <div className="pips top">{card.rank}{card.suit}</div>
-      <div className="pips bot">{card.rank}{card.suit}</div>
-    </div>
-  );
-}
-function Hand({ title, cards, hideHole = false }) {
-  let total = handTotal(cards);
-  if (hideHole) total = "?";
-
-  return (
-    <div className="hand">
-      <div className="hand-title">
-        {title} · <span className="total">{total}</span>
-      </div>
-      <div className="cards">
-        {cards.map((c, i) => (
-          <Card key={c.key} card={c} faceUp={!(hideHole && i === 1)} />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/* ===== stable unique ids for dealt cards ===== */
-let GLOBAL_CARD_ID = 0;
-
-/* ============ Game ============ */
 export default function App() {
-  const START_BANKROLL = 1000;
+  const [balance, setBalance] = useState(100);
+  const [casinoDebt, setCasinoDebt] = useState(0);
+  const [chipsOnBoard, setChipsOnBoard] = useState({});
+  const [rotationDeg, setRotationDeg] = useState(0);
+  const [winningNumber, setWinningNumber] = useState(null);
+  const [spinning, setSpinning] = useState(false);
+  const [resultMessage, setResultMessage] = useState(null);
+  const [showIOU, setShowIOU] = useState(false);
 
-  const shoeRef = useRef(shuffle(buildDeck()));
-  const [shoe, setShoe] = useState(shoeRef.current);
+  // audio refs
+  const spinAudioRef = useRef(null);
+  const jazzRef = useRef(null);
+  const [isJazzPlaying, setIsJazzPlaying] = useState(false);
 
-  const [bankroll, setBankroll] = useState(START_BANKROLL);
-  const [bet, setBet] = useState(25);
+  const totalBet = useMemo(
+    () =>
+      Object.values(chipsOnBoard).reduce(
+        (sum, arr) => sum + arr.reduce((s, c) => s + c.value, 0),
+        0
+      ),
+    [chipsOnBoard]
+  );
 
-  const [playerHands, setPlayerHands] = useState([]);
-  const [handBets, setHandBets] = useState([]);
-  const [currentHand, setCurrentHand] = useState(0);
-  const [dealer, setDealer] = useState([]);
+  const canSpin = !spinning && totalBet > 0 && balance > 0;
 
-  const [inRound, setInRound] = useState(false);
-  const [message, setMessage] = useState("Drag chips to the bet circle, then play!");
-
-  const [iou, setIou] = useState(0);
-  const MAX_IOU = 5000;
-  const [showLoanPopup, setShowLoanPopup] = useState(false);
-  const [loanAmount, setLoanAmount] = useState(250);
-  const [mustContinue, setMustContinue] = useState(false);
-
-  const nextTimer = useRef(null);
-
-  // 🎶 Jazz Music
-  const audioRef = useRef(null);
-  const [isPlaying, setIsPlaying] = useState(true);
-  useEffect(() => {
-    if (isPlaying) audioRef.current.play().catch(() => {});
-    else audioRef.current.pause();
-  }, [isPlaying]);
-
-  function take(n = 1) {
-    if (shoeRef.current.length < n) {
-      shoeRef.current = shuffle(buildDeck());
-    }
-    const chunk = shoeRef.current.slice(0, n).map((c) => ({
-      ...c,
-      key: `card-${GLOBAL_CARD_ID++}`,
-    }));
-    shoeRef.current = shoeRef.current.slice(n);
-    setShoe(shoeRef.current);
-    return chunk;
-  }
-
-  function dealRound() {
-    if (nextTimer.current) { clearTimeout(nextTimer.current); nextTimer.current = null; }
-
-    if (bankroll < bet || bet <= 0) {
-      if (iou < MAX_IOU) {
-        setShowLoanPopup(true);
-      } else {
-        setMessage("You're out of chips and reached IOU limit! Game over.");
-      }
-      setInRound(false);
+  // ---------- Chip placement ----------
+  const placeChip = (spotId, chipValue) => {
+    if (spinning) return;
+    if (balance < chipValue) {
+      setShowIOU(true);
       return;
     }
 
-    const d = [take(1)[0], take(1)[0]];
-    const p = [take(1)[0], take(1)[0]];
+    setChipsOnBoard((prev) => {
+      const arr = prev[spotId] ? [...prev[spotId]] : [];
+      const id = `${spotId}:${Date.now()}:${Math.random()
+        .toString(36)
+        .slice(2, 8)}`;
+      arr.push({ id, value: chipValue, idx: arr.length });
+      return { ...prev, [spotId]: arr };
+    });
+    setBalance((b) => b - chipValue);
+  };
 
-    setDealer(d);
-    setPlayerHands([p]);
-    setHandBets([bet]);
-    setCurrentHand(0);
-    setBankroll((prev) => prev - bet);
-    setInRound(true);
-    setMessage("Your move!");
-  }
+  const removeOneChip = (spotId) => {
+    if (spinning) return;
+    const arr = chipsOnBoard[spotId];
+    if (!arr || arr.length === 0) return;
 
-  function scheduleNextRound() {
-    nextTimer.current = setTimeout(() => {
-      dealRound();
-    }, 1600);
-  }
+    const popped = arr[arr.length - 1];
+    setChipsOnBoard((prev) => {
+      const next = { ...prev };
+      next[spotId] = arr.slice(0, -1);
+      if (next[spotId].length === 0) delete next[spotId];
+      return next;
+    });
+    setBalance((b) => b + popped.value);
+  };
 
-  function resolveVsDealer() {
-    let d = dealer;
-    while (handTotal(d) < 17) {
-      d = [...d, take(1)[0]];
+  const clearAllBets = () => {
+    if (spinning) return;
+    const refund = totalBet;
+    setChipsOnBoard({});
+    setBalance((b) => b + refund);
+  };
+
+  // ---------- Spin flow ----------
+  const spinWheel = () => {
+    if (!canSpin) {
+      if (balance <= 0) setShowIOU(true);
+      return;
     }
-    setDealer(d);
 
-    const dTotal = handTotal(d);
-    let wins = 0, losses = 0, pushes = 0;
+    setSpinning(true);
+    setWinningNumber(null);
 
-    playerHands.forEach((h, idx) => {
-      const wager = handBets[idx];
-      const pTotal = handTotal(h);
+    // play spin sound
+    if (spinAudioRef.current) {
+      spinAudioRef.current.currentTime = 0;
+      spinAudioRef.current.play();
+      setTimeout(() => {
+        if (spinAudioRef.current) spinAudioRef.current.pause();
+      }, 8000);
+    }
 
-      if (pTotal > 21) {
-        losses++;
-      } else if (dTotal > 21 || pTotal > dTotal) {
-        wins++;
-        setBankroll((prev) => prev + wager * 2);
-      } else if (pTotal === dTotal) {
-        pushes++;
-        setBankroll((prev) => prev + wager);
-      } else {
-        losses++;
+    // pick winning number
+    const win = Math.floor(Math.random() * 37);
+    setWinningNumber(win);
+
+    // compute final wheel rotation
+    const idx = WHEEL_ORDER.indexOf(win);
+    const extraTurns = 6 + Math.floor(Math.random() * 3);
+    const endDeg =
+      extraTurns * 360 + idx * SEGMENT_ANGLE + SEGMENT_ANGLE / 2;
+    setRotationDeg((prev) => prev + endDeg);
+  };
+
+  const onSpinEnd = () => {
+    if (winningNumber === null) return;
+
+    let winnings = 0;
+    for (const [spotId, chips] of Object.entries(chipsOnBoard)) {
+      const won = isWinningForSpot(spotId, winningNumber);
+      if (!won) continue;
+
+      const payoutMult = PAYOUTS[spotId] ?? PAYOUTS.STRAIGHT;
+      for (const chip of chips) {
+        winnings += chip.value * payoutMult;
       }
-    });
+    }
 
-    setMessage(`Result — W:${wins}  L:${losses}  P:${pushes}`);
-    setInRound(false);
-    scheduleNextRound();
-  }
+    let message = "";
+    if (winnings > 0) {
+      setBalance((b) => b + winnings);
+      message = `${winningNumber} ${colorName(
+        winningNumber
+      )} WINNER +${winnings}`;
+    } else {
+      message = `${winningNumber} ${colorName(
+        winningNumber
+      )} LOST -${totalBet}`;
+    }
 
-  function playerHit() {
-    if (!inRound) return;
+    setResultMessage(message);
+    setTimeout(() => setResultMessage(null), 4000);
 
-    setPlayerHands((hands) => {
-      const copy = hands.map((h, idx) =>
-        idx === currentHand ? [...h, take(1)[0]] : h
-      );
+    setSpinning(false);
+  };
 
-      const thisHand = copy[currentHand];
-      const total = handTotal(thisHand);
+  const readyNext = () => {
+    setChipsOnBoard({});
+    setWinningNumber(null);
+  };
 
-      if (total > 21) {
-        setMessage("Bust! You lose your bet.");
-        setInRound(false);
-        scheduleNextRound();
-      } else if (total === 21) {
-        setMessage("21! Standing...");
-        setTimeout(resolveVsDealer, 800);
-      }
+  // ---------- Jazz controls ----------
+  const toggleJazz = () => {
+    if (!jazzRef.current) return;
+    if (isJazzPlaying) {
+      jazzRef.current.pause();
+      setIsJazzPlaying(false);
+    } else {
+      jazzRef.current.currentTime = 0;
+      jazzRef.current.play();
+      setIsJazzPlaying(true);
+    }
+  };
 
-      return copy;
-    });
-  }
-
-  function playerStand() {
-    if (!inRound) return;
-    resolveVsDealer();
-  }
-
-  // start first round
-  useEffect(() => { dealRound(); }, []);
+  // ---------- Casino IOU ----------
+  const borrowFromCasino = (amount) => {
+    if (casinoDebt + amount > 5000) return;
+    setCasinoDebt((d) => d + amount);
+    setBalance((b) => b + amount);
+    setShowIOU(false);
+  };
 
   return (
-    <DndProvider backend={HTML5Backend}>
+    <div className="App">
+      <header className="topbar">
+        <h1 className="title">Vram's Roulette Table</h1>
+        <div className="bank">
+          <span className="label">Balance:</span>
+          <span className="value">{balance} chips</span>
+          {casinoDebt > 0 && (
+            <span className="debt">CASINO: -{casinoDebt}</span>
+          )}
+        </div>
+      </header>
+
       <div className="layout">
-        <h1 className="title">Vram's Blackjack Table</h1>
+        <section className="left">
+          <RouletteWheel
+            rotationDeg={rotationDeg}
+            spinning={spinning}
+            winningNumber={winningNumber}
+            onSpinEnd={onSpinEnd}
+          />
+          <Controls
+            canSpin={canSpin}
+            onSpin={spinWheel}
+            onReady={readyNext}
+            onClear={clearAllBets}
+            spinning={spinning}
+            totalBet={totalBet}
+          />
 
-        {/* 🎶 Jazz Music */}
-        <audio ref={audioRef} src="/jazz.mp3" loop />
-        <button 
-          className="music-btn"
-          onClick={() => setIsPlaying(!isPlaying)}
-        >
-          {isPlaying ? "🎶 Pause Jazz" : "🎵 Play Jazz"}
-        </button>
-
-        {/* status */}
-        <div className="status">
-          <div>
-            Bet: {bet} • Bankroll: {Math.max(bankroll, 0)} 
-            {iou > 0 && <span className="iou"> • IOU: {iou}</span>}
-          </div>
-          <div className="msg">{message}</div>
-          <div className="helper-tip">
-            Drag your chips to the bet circle to add, or use buttons to remove them.
-          </div>
-        </div>
-
-        {/* chips */}
-        <div className="chips">
-          <DraggableChip value={25} color="red" />
-          <DraggableChip value={50} color="blue" />
-          <DraggableChip value={100} color="green" />
-        </div>
-
-        {/* table */}
-        <Table>
-          <Hand title="Dealer" cards={dealer} hideHole={inRound} />
-          <BetZone bet={bet} setBet={setBet} />
-          <Hand title="Player" cards={playerHands[0] || []} />
-        </Table>
-
-        {/* actions */}
-        <div className="controls">
-          <button className="hit" onClick={playerHit} disabled={!inRound}>
-            Hit
+          <button onClick={toggleJazz} className="jazz-btn">
+            {isJazzPlaying ? "Stop Music" : "Play Music"}
           </button>
-          <button className="stand" onClick={playerStand} disabled={!inRound}>
-            Stand
-          </button>
-        </div>
+        </section>
 
-        {/* Loan Popup */}
-        {showLoanPopup && (
-          <div className="loan-popup">
-            <div className="loan-content">
-              <h2>Casino Credit</h2>
-              <p>You can borrow up to 5,000 chips.</p>
-              <p>Borrowed so far: {iou}</p>
-
-              <input
-                type="range"
-                min="250"
-                max={MAX_IOU - iou}
-                step="250"
-                value={loanAmount}
-                onChange={(e) => setLoanAmount(parseInt(e.target.value))}
-                className="loan-slider"
-              />
-              <p>Borrow Amount: {loanAmount}</p>
-
-              <div className="loan-actions">
-                <button
-                  className="borrow"
-                  onClick={() => {
-                    setIou((prev) => prev + loanAmount);
-                    setBankroll((prev) => prev + loanAmount);
-                    setMessage(`Borrowed ${loanAmount} chips from Casino.`);
-                    setMustContinue(true);
-                  }}
-                >
-                  Borrow
-                </button>
-                <button className="cancel" onClick={() => setMustContinue(true)}>
-                  Cancel
-                </button>
-              </div>
-
-              {mustContinue && (
-                <button
-                  className="continue"
-                  onClick={() => {
-                    setShowLoanPopup(false);
-                    setMustContinue(false);
-                    dealRound();
-                  }}
-                >
-                  Continue Playing
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* disclaimer / fun text */}
-        <p className="disclaimer">
-          Some cards may be blank. I call it <strong>mystery cards</strong>. Good luck!
-        </p>
+        <section className="right">
+          <ChipPalette />
+          <BettingBoard
+            numberColor={numberColor}
+            chipsOnBoard={chipsOnBoard}
+            onDropChip={(spotId, chipValue) => placeChip(spotId, chipValue)}
+            onRightClickSpot={removeOneChip}
+            winningNumber={winningNumber}
+          />
+        </section>
       </div>
-    </DndProvider>
+
+      {/* Audio elements */}
+      <audio ref={spinAudioRef} src="/roulette.mp3" preload="auto" />
+      <audio ref={jazzRef} src="/jazz.mp3" preload="auto" loop />
+
+      {/* Popup message */}
+      {resultMessage && <div className="popup">{resultMessage}</div>}
+
+      {/* IOU Popup */}
+      {showIOU && (
+        <CasinoIOU
+          debt={casinoDebt}
+          onBorrow={borrowFromCasino}
+          onClose={() => setShowIOU(false)}
+        />
+      )}
+    </div>
   );
 }

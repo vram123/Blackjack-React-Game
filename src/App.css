@@ -1,391 +1,190 @@
+/* ====== Theme / Layout ====== */
+:root {
+  --bg: #0b0f14;
+  --panel: #121820;
+  --accent: #2f7df6;
+  --text: #e9eef7;
+  --muted: #92a2b6;
+  --green: #1a8f3a;
+  --red: #c9252b;
+  --black: #222;
+  --gold: #e1b85a;
+}
+
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; }
 body {
-    margin: 0;
-    padding: 0;
-    background: radial-gradient(circle at center, #0b0c10, #000000);
-    color: #e6e8ef;
-    font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  }
-  
-  /* Layout */
-  .layout {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 24px 20px 40px;
-  }
-  
-  /* Title / Status */
-  .title {
-    font-size: 2.6rem;
-    font-weight: 900;
-    margin: 0 0 8px;
-    text-shadow: 0 2px 14px rgba(0,0,0,.55);
-  }
-  .status {
-    margin-bottom: 10px;
-    text-align: center;
-  }
-  .status .msg {
-    font-size: 1.1rem;
-    font-weight: 800;
-    color: gold;
-  }
-  
-  /* Chip row */
-  .chips {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 10px;
-  }
-  .chip {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    font-weight: 900;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    box-shadow: inset 0 0 6px rgba(0,0,0,0.6), 0 6px 12px rgba(0,0,0,.4);
-    border: 3px solid rgba(255,255,255,.75);
-    user-select: none;
-    cursor: grab;
-  }
-  .chip:active { cursor: grabbing; }
-  .chip.red   { background: #c0392b; color: #fff; }
-  .chip.blue  { background: #2980b9; color: #fff; }
-  .chip.green { background: #27ae60; color: #fff; }
-  .stack-label { margin-left: 10px; font-size: .95rem; color: #cbd2e1; }
-  
-  /* Table */
-  .table {
-    position: relative;
-    background: radial-gradient(circle at 50% 40%, #1e6b2c, #0c3d1a 70%);
-    border: 6px solid #222;
-    border-radius: 200px / 100px;
-    box-shadow:
-      inset 0 0 60px rgba(0,0,0,0.65),
-      0 10px 40px rgba(0,0,0,0.6);
-    width: min(940px, 92vw);
-    height: 520px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    padding: 46px;
-    margin: 12px 0 18px;
-  }
-  
-  /* Hands */
-  .hand { text-align: center; color: #fff; }
-  .hand-title { font-size: 1.15rem; font-weight: 800; margin-bottom: 8px; }
-  .cards { display: flex; justify-content: center; gap: 10px; }
-  
-  /* Cards */
-  .card {
-    width: 64px;
-    height: 94px;
-    background: #fff;
-    border: 2px solid #d8dbe2;
-    border-radius: 8px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    padding: 4px;
-    font-weight: 800;
-    box-shadow: 0 6px 14px rgba(0,0,0,0.55);
-  }
-  .card.red { color: #d63031; }
-  .card.back {
-    background:
-      repeating-linear-gradient(
-        45deg,
-        #3b4252 0 10px,
-        #2e3440 10px 20px
-      );
-    border-color: #232833;
-    color: transparent;
-  }
-  .pips.top { font-size: 14px; }
-  .pips.big { align-self: center; font-size: 26px; opacity: .9; }
-  .pips.bot { font-size: 14px; transform: rotate(180deg); align-self: flex-end; }
-  
-  /* Controls */
-  .controls { display: flex; gap: 12px; }
-  .controls button {
-    padding: 10px 18px;
-    font-size: 1rem;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: 800;
-    transition: transform .15s, filter .15s;
-    box-shadow: 0 6px 14px rgba(0,0,0,.35);
-  }
-  .controls button:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.05); }
-  .controls button:disabled { opacity: .55; cursor: not-allowed; }
-  .controls .hit   { background: #ffd200; color: #111; }
-  .controls .stand { background: #3498db; color: #fff; }
-  
-  /* Bet Zone (drop target) */
-  .bet-zone {
-    margin: 30px auto 0 auto;   /* ⬅️ pushes it below the table */
-    width: 160px;
-    height: 160px;
-    border-radius: 50%;
-    border: 4px dashed gold;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    background: rgba(0,0,0,0.35);
-    color: #fff;
-    text-align: center;
-    gap: 8px;
-  }
-  
-  
-  .bet-zone p { margin: 0; font-weight: 900; letter-spacing: .3px; }
-  
-  /* Bet adjust buttons inside drop zone */
-  .bet-adjust {
-    display: flex;
-    gap: 6px;
-  }
-  .bet-adjust button {
-    background: rgba(255,255,255,.1);
-    border: 1px solid rgba(255,255,255,.25);
-    color: #fff;
-    font-weight: 800;
-    border-radius: 6px;
-    padding: 4px 6px;
-    cursor: pointer;
-  }
-  .bet-adjust button:hover { background: rgba(255,255,255,.18); }
-  
-  /* Dealer area top / player area bottom for spacing inside table */
-  .table .top    { margin-top: 8px; }
-  .table .bottom { margin-bottom: 8px; }
-  
-  /* Responsive */
-  @media (max-width: 560px){
-    .card{ width:56px; height:84px; }
-    .bet-zone{ width:140px; height:140px; bottom:48px; }
-  }
-
-  .music-btn {
-    margin: 20px 0;
-    padding: 14px 28px;
-    font-size: 1.2rem;
-    font-weight: bold;
-    background: linear-gradient(135deg, #ffdd00, #ffaa00);
-    color: #111;
-    border: none;
-    border-radius: 12px;
-    cursor: pointer;
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
-    transition: transform 0.2s ease, background 0.2s ease;
-  }
-  
-  .music-btn:hover {
-    transform: scale(1.08);
-    background: linear-gradient(135deg, #ffee55, #ffbb22);
-  }
-  
-  /* Hit button = Red */
-/* Hit button = Red */
-button.hit {
-    background: #e74c3c; /* red */
-    color: white;
-    font-weight: bold;
-    padding: 10px 20px;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: transform 0.2s, background 0.2s;
-  }
-  
-  button.hit:hover:not(:disabled) {
-    background: #c0392b;
-    transform: scale(1.05);
-  }
-  
-  /* Stand button = Green */
-  button.stand {
-    background: #27ae60; /* green */
-    color: white;
-    font-weight: bold;
-    padding: 10px 20px;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: transform 0.2s, background 0.2s;
-  }
-  
-  button.stand:hover:not(:disabled) {
-    background: #1e8449;
-    transform: scale(1.05);
-  }
-
-  .disclaimer {
-    margin-top: 12px;
-    font-size: 0.95rem;
-    color: #ccc;
-    font-style: italic;
-    text-align: center;
-  }
-  .disclaimer strong {
-    color: gold;
-  }
-
-  .helper-tip {
-    font-size: 0.9rem;
-    color: #a8adbd;
-    margin-top: 4px;
-    font-style: italic;
-  }
-  
-  .iou {
-    color: #ff4444;
-    font-weight: bold;
-    margin-left: 8px;
-  }
-  
-  /* ===== IOU Casino Loan Popup ===== */
-.iou {
-  color: #ff4444;
-  font-weight: bold;
-  margin-left: 8px;
+  margin: 0;
+  background: radial-gradient(1200px 700px at 50% -200px, #182231, var(--bg));
+  color: var(--text);
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
 }
 
-.loan-popup {
-  position: fixed;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  background: rgba(0,0,0,0.7);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 999;
+.App { max-width: 1180px; margin: 0 auto; padding: 24px; }
+
+.topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.title { margin: 0; letter-spacing: .5px; }
+.bank .label { color: var(--muted); margin-right: 8px; }
+
+.layout { display: grid; grid-template-columns: 440px 1fr; gap: 24px; }
+.left, .right {
+  background: var(--panel);
+  border: 1px solid #1a2330;
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
 }
 
-.loan-content {
-  background: #222;
-  padding: 28px;
-  border-radius: 14px;
-  color: #fff;
-  text-align: center;
-  max-width: 420px;
-  width: 85%;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.65);
-  animation: popupFade 0.3s ease;
+/* ====== Wheel (SVG) ====== */
+.wheel-wrap { position: relative; display: grid; place-items: center; gap: 10px; }
+.pointer {
+  width: 0; height: 0;
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-bottom: 16px solid var(--gold);
+  margin-bottom: 6px;
+  filter: drop-shadow(0 2px 1px rgba(0,0,0,.4));
 }
-
-@keyframes popupFade {
-  from { opacity: 0; transform: scale(0.9); }
-  to   { opacity: 1; transform: scale(1); }
-}
-
-.loan-content h2 {
-  color: gold;
-  margin-bottom: 16px;
-}
-
-.loan-content p {
-  margin: 8px 0;
-  font-size: 1.05rem;
-}
-
-/* ===== Slider Style ===== */
-.loan-slider {
-  width: 100%;
-  margin: 20px 0;
-  appearance: none;
-  height: 10px;
-  border-radius: 8px;
-  background: linear-gradient(90deg, #ff4444, #ffbb00);
-  outline: none;
-  cursor: pointer;
-}
-
-.loan-slider::-webkit-slider-thumb {
-  appearance: none;
-  width: 22px;
-  height: 22px;
+.wheel-svg {
+  transition: transform 3.2s cubic-bezier(.2,.9,.2,1);
+  width: 340px; height: 340px;
+  background: radial-gradient(circle at 50% 45%, rgba(0,0,0,.15), transparent 60%);
   border-radius: 50%;
-  background: gold;
-  border: 2px solid #222;
-  cursor: grab;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.6);
-  transition: transform 0.15s;
-}
-.loan-slider::-webkit-slider-thumb:active {
-  transform: scale(1.1);
-  cursor: grabbing;
+  box-shadow: 0 10px 28px rgba(0,0,0,.35), inset 0 0 0 8px #0e141c;
 }
 
-.loan-slider::-moz-range-thumb {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: gold;
-  border: 2px solid #222;
-  cursor: grab;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.6);
-}
-
-/* ===== Loan Buttons ===== */
-.loan-actions {
-  margin-top: 16px;
-  display: flex;
-  justify-content: center;
-  gap: 14px;
-}
-
-.loan-actions button {
-  padding: 10px 22px;
-  font-weight: bold;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: transform 0.15s, background 0.2s;
-}
-
-.loan-actions button.borrow {
-  background: #e74c3c;
-  color: #fff;
-}
-.loan-actions button.borrow:hover {
-  background: #c0392b;
-  transform: scale(1.05);
-}
-
-.loan-actions button.cancel {
-  background: #555;
-  color: #ddd;
-}
-.loan-actions button.cancel:hover {
-  background: #444;
-  transform: scale(1.05);
-}
-
-/* Continue Playing button */
-.loan-content .continue {
-  margin-top: 18px;
-  padding: 12px 28px;
-  font-size: 1.1rem;
-  font-weight: bold;
-  background: linear-gradient(135deg, #27ae60, #2ecc71);
-  color: #fff;
-  border: none;
+.result-tag {
+  font-size: 14px;
+  background: #0f1621;
+  border: 1px solid #202b3a;
+  padding: 6px 10px;
   border-radius: 10px;
+}
+
+/* ====== Controls ====== */
+.controls { display: flex; align-items: center; gap: 12px; justify-content: center; margin-top: 16px; flex-wrap: wrap; }
+.btn {
+  border: 1px solid #203046; background: #101826; color: var(--text);
+  padding: 10px 14px; border-radius: 10px; cursor: pointer;
+}
+.btn:hover { background: #0d1520; }
+.btn.primary { background: var(--accent); border-color: #2a6cda; color: #fff; }
+.btn.primary:disabled { opacity: .5; }
+.btn.ghost { background: transparent; }
+.bet-info { color: var(--muted); }
+
+/* ====== Chips ====== */
+.chips { margin-bottom: 16px; }
+.chips h3 { margin: 0 0 8px 0; }
+.chip-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.chip {
+  width: 52px; height: 52px; border-radius: 50%;
+  border: 2px solid #e6edf8;
+  background: radial-gradient(circle at 30% 30%, #f9fbff 0, #cdd8ea 70%, #a8b8d4 100%);
+  color: #0d1726; font-weight: 700; cursor: grab;
+  display: grid; place-items: center;
+  box-shadow: 0 4px 10px rgba(0,0,0,.35);
+  user-select: none;
+}
+.chip:active { cursor: grabbing; }
+.chip.active { outline: 3px solid var(--accent); }
+.hint { color: var(--muted); font-size: 12px; margin-top: 6px; }
+
+/* Chips placed on board */
+.chip.placed {
+  position: absolute;
+  width: 34px; height: 34px;
+  border: 2px solid #e6edf8;
+  background: radial-gradient(circle at 30% 30%, #fff 0, #d6e0ef 70%, #b1c0d8 100%);
+  color: #0d1726; font-weight: 800; font-size: 12px;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  animation: pop 120ms ease-out;
+  box-shadow: 0 4px 10px rgba(0,0,0,.35);
+}
+@keyframes pop {
+  from { transform: scale(.6); opacity: .6; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+/* ====== Betting board ====== */
+.board { display: grid; grid-template-columns: 92px 1fr; gap: 10px; }
+.zero-col { display: flex; }
+.grid { display: grid; gap: 6px; grid-template-rows: auto auto auto auto auto auto; }
+
+.row { display: grid; grid-template-columns: repeat(12, minmax(42px, 1fr)); gap: 6px; }
+.columns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.dozens { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.even-money { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+
+.cell {
+  position: relative;
+  height: 44px;
+  border-radius: 8px;
+  border: 1px solid #1f2a3a;
+  background: #0f1724;
+  color: #dfe8f6;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-  transition: transform 0.2s, background 0.2s;
+  display: grid; place-items: center;
+  user-select: none;
+  transition: transform .02s ease-in, background .15s ease;
+}
+.cell:hover { transform: translateY(-1px); background: #101c2a; }
+.cell.red { background: #2a0f13; border-color: #43171b; }
+.cell.black { background: #0f1115; border-color: #1e232b; }
+.cell.green { background: #0e2916; border-color: #1a3c23; }
+.cell.zero { height: auto; width: 100%; }
+
+.cell.column, .cell.dozen, .cell.even { height: 52px; font-weight: 700; }
+
+.cell.win { outline: 2px solid var(--gold); box-shadow: 0 0 0 3px rgba(225,184,90,.25); }
+
+.chip-stack { position: absolute; inset: 0; pointer-events: none; display: block; }
+.cell .chip-stack .chip { pointer-events: none; }
+
+.even-money .redBox { background: #2a0f13; }
+.even-money .blackBox { background: #0f1115; }
+
+/* ====== Responsive ====== */
+@media (max-width: 980px) {
+  .layout { grid-template-columns: 1fr; }
+  .row { grid-template-columns: repeat(12, 1fr); }
 }
 
-.loan-content .continue:hover {
-  background: linear-gradient(135deg, #219150, #27ae60);
-  transform: scale(1.05);
+.popup {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(15,22,33,0.95);
+  border: 2px solid var(--gold);
+  border-radius: 12px;
+  padding: 12px 20px;
+  color: #fff;
+  font-size: 18px;
+  font-weight: bold;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+  animation: fadeInOut 4s forwards;
+  z-index: 1000;
+}
+@keyframes fadeInOut {
+  0% { opacity: 0; transform: translate(-50%, -20px); }
+  10% { opacity: 1; transform: translate(-50%, 0); }
+  90% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -20px); }
 }
 
-  
+.jazz-btn {
+  margin-top: 12px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  background: #3a82f7;
+  color: #fff;
+  transition: background 0.2s;
+}
+.jazz-btn:hover {
+  background: #1e5fc9;
+}
