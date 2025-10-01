@@ -93,7 +93,6 @@ function Table({ children }) {
 function Card({ card, faceUp = true }) {
   if (!faceUp) return <div className="card back" />;
 
-  // Guard against missing card data
   if (!card || !card.rank || !card.suit) {
     return <div className="card back" />;
   }
@@ -146,9 +145,13 @@ export default function App() {
   const [inRound, setInRound] = useState(false);
   const [message, setMessage] = useState("Drag chips to the bet circle, then play!");
 
-  const nextTimer = useRef(null);
+  const [iou, setIou] = useState(0);
+  const MAX_IOU = 5000;
+  const [showLoanPopup, setShowLoanPopup] = useState(false);
+  const [loanAmount, setLoanAmount] = useState(250);
+  const [mustContinue, setMustContinue] = useState(false);
 
-  
+  const nextTimer = useRef(null);
 
   // 🎶 Jazz Music
   const audioRef = useRef(null);
@@ -175,7 +178,11 @@ export default function App() {
     if (nextTimer.current) { clearTimeout(nextTimer.current); nextTimer.current = null; }
 
     if (bankroll < bet || bet <= 0) {
-      setMessage(bet <= 0 ? "Place a bet to continue." : "Not enough chips! Game over.");
+      if (iou < MAX_IOU) {
+        setShowLoanPopup(true);
+      } else {
+        setMessage("You're out of chips and reached IOU limit! Game over.");
+      }
       setInRound(false);
       return;
     }
@@ -241,10 +248,10 @@ export default function App() {
       const thisHand = copy[currentHand];
       const total = handTotal(thisHand);
 
-      // auto-advance on bust or 21
       if (total > 21) {
-        setMessage("Bust!");
-        setTimeout(resolveVsDealer, 800);
+        setMessage("Bust! You lose your bet.");
+        setInRound(false);
+        scheduleNextRound();
       } else if (total === 21) {
         setMessage("21! Standing...");
         setTimeout(resolveVsDealer, 800);
@@ -270,22 +277,23 @@ export default function App() {
         {/* 🎶 Jazz Music */}
         <audio ref={audioRef} src="/jazz.mp3" loop />
         <button 
-  className="music-btn"
-  onClick={() => setIsPlaying(!isPlaying)}
->
-  {isPlaying ? "🎶 Pause Jazz" : "🎵 Play Jazz"}
-</button>
+          className="music-btn"
+          onClick={() => setIsPlaying(!isPlaying)}
+        >
+          {isPlaying ? "🎶 Pause Jazz" : "🎵 Play Jazz"}
+        </button>
 
-
-                {/* status */}
-                <div className="status">
-          <div>Bet: {bet} • Bankroll: {bankroll}</div>
+        {/* status */}
+        <div className="status">
+          <div>
+            Bet: {bet} • Bankroll: {Math.max(bankroll, 0)} 
+            {iou > 0 && <span className="iou"> • IOU: {iou}</span>}
+          </div>
           <div className="msg">{message}</div>
           <div className="helper-tip">
-             Drag your chips to the bet circle to add, or use buttons to remove them.
+            Drag your chips to the bet circle to add, or use buttons to remove them.
           </div>
         </div>
-
 
         {/* chips */}
         <div className="chips">
@@ -301,7 +309,7 @@ export default function App() {
           <Hand title="Player" cards={playerHands[0] || []} />
         </Table>
 
-                {/* actions */}
+        {/* actions */}
         <div className="controls">
           <button className="hit" onClick={playerHit} disabled={!inRound}>
             Hit
@@ -311,12 +319,63 @@ export default function App() {
           </button>
         </div>
 
+        {/* Loan Popup */}
+        {showLoanPopup && (
+          <div className="loan-popup">
+            <div className="loan-content">
+              <h2>Casino Credit</h2>
+              <p>You can borrow up to 5,000 chips.</p>
+              <p>Borrowed so far: {iou}</p>
+
+              <input
+                type="range"
+                min="250"
+                max={MAX_IOU - iou}
+                step="250"
+                value={loanAmount}
+                onChange={(e) => setLoanAmount(parseInt(e.target.value))}
+                className="loan-slider"
+              />
+              <p>Borrow Amount: {loanAmount}</p>
+
+              <div className="loan-actions">
+                <button
+                  className="borrow"
+                  onClick={() => {
+                    setIou((prev) => prev + loanAmount);
+                    setBankroll((prev) => prev + loanAmount);
+                    setMessage(`Borrowed ${loanAmount} chips from Casino.`);
+                    setMustContinue(true);
+                  }}
+                >
+                  Borrow
+                </button>
+                <button className="cancel" onClick={() => setMustContinue(true)}>
+                  Cancel
+                </button>
+              </div>
+
+              {mustContinue && (
+                <button
+                  className="continue"
+                  onClick={() => {
+                    setShowLoanPopup(false);
+                    setMustContinue(false);
+                    dealRound();
+                  }}
+                >
+                  Continue Playing
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* disclaimer / fun text */}
         <p className="disclaimer">
-           Some cards may be blank. I call it <strong>mystery cards</strong>. Good luck!
+          Some cards may be blank. I call it <strong>mystery cards</strong>. Good luck!
         </p>
-      </div> {/* closes layout */}
+      </div>
     </DndProvider>
   );
 }
-
