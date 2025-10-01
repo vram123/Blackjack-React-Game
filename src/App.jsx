@@ -4,7 +4,7 @@ import RouletteWheel from "./components/RouletteWheel";
 import BettingBoard from "./components/BettingBoard";
 import ChipPalette from "./components/ChipPalette";
 import Controls from "./components/Controls";
-import CasinoIOU from "./components/CasinoIOU";   // NEW COMPONENT
+import CasinoIOU from "./components/CasinoIOU";
 import {
   WHEEL_ORDER,
   SEGMENT_ANGLE,
