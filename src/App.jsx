@@ -373,7 +373,7 @@ export default function App() {
 
         {/* disclaimer / fun text */}
         <p className="disclaimer">
-          Some cards may be blank. I call it <strong>mystery cards</strong>. Good luck!
+          Good luck!
         </p>
       </div>
     </DndProvider>
