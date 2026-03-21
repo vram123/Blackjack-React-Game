@@ -7,7 +7,8 @@
     "start": "vite",
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "trim-d2": "node scripts/trim-d2.mjs"
   },
   "dependencies": {
     "react": "^18.2.0",
@@ -17,6 +18,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.0.0",
+    "sharp": "^0.34.5",
     "vite": "^5.0.0"
   }
 }
