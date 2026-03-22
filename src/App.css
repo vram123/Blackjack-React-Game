@@ -107,6 +107,8 @@ body {
 
   .round-end-inner {
     pointer-events: auto;
+    position: relative;
+    z-index: 910;
     width: min(96vw, 1200px);
     max-height: min(52vh, 520px);
     display: flex;
@@ -120,6 +122,86 @@ body {
     margin-top: min(4vh, 32px);
   }
 
+  /* Player natural blackjack — full-screen floaters behind the panel */
+  .blackjack-celebration {
+    position: fixed;
+    inset: 0;
+    z-index: 905;
+    pointer-events: none;
+    overflow: hidden;
+  }
+
+  .blackjack-float-dollars {
+    position: absolute;
+    inset: 0;
+  }
+
+  .money-float {
+    position: absolute;
+    font-size: clamp(1.25rem, 4vw, 2.25rem);
+    font-weight: 900;
+    color: rgba(46, 204, 113, 0.9);
+    text-shadow: 0 0 14px rgba(39, 174, 96, 0.55);
+    animation: money-float-up 3.2s ease-in-out infinite;
+    opacity: 0.85;
+  }
+
+  .money-float:nth-child(1) { left: 6%; top: 22%; animation-delay: 0s; }
+  .money-float:nth-child(2) { left: 14%; top: 58%; animation-delay: 0.15s; font-size: 1.8rem; }
+  .money-float:nth-child(3) { left: 22%; top: 12%; animation-delay: 0.3s; }
+  .money-float:nth-child(4) { left: 30%; top: 72%; animation-delay: 0.05s; }
+  .money-float:nth-child(5) { left: 38%; top: 28%; animation-delay: 0.35s; }
+  .money-float:nth-child(6) { left: 46%; top: 48%; animation-delay: 0.2s; font-size: 2rem; }
+  .money-float:nth-child(7) { left: 54%; top: 18%; animation-delay: 0.4s; }
+  .money-float:nth-child(8) { left: 62%; top: 62%; animation-delay: 0.1s; }
+  .money-float:nth-child(9) { left: 70%; top: 36%; animation-delay: 0.25s; }
+  .money-float:nth-child(10) { left: 78%; top: 78%; animation-delay: 0.18s; }
+  .money-float:nth-child(11) { left: 10%; top: 82%; animation-delay: 0.28s; }
+  .money-float:nth-child(12) { left: 88%; top: 42%; animation-delay: 0.08s; }
+  .money-float:nth-child(13) { left: 18%; top: 40%; animation-delay: 0.33s; }
+  .money-float:nth-child(14) { left: 50%; top: 8%; animation-delay: 0.12s; }
+  .money-float:nth-child(15) { left: 92%; top: 24%; animation-delay: 0.38s; }
+  .money-float:nth-child(16) { left: 34%; top: 88%; animation-delay: 0.22s; }
+  .money-float:nth-child(17) { left: 66%; top: 92%; animation-delay: 0.16s; }
+  .money-float:nth-child(18) { left: 8%; top: 52%; animation-delay: 0.42s; }
+
+  @keyframes money-float-up {
+    0%,
+    100% {
+      transform: translateY(0) rotate(-4deg) scale(1);
+      opacity: 0.35;
+    }
+    50% {
+      transform: translateY(-32px) rotate(4deg) scale(1.12);
+      opacity: 1;
+    }
+  }
+
+  .blackjack-stamp {
+    margin: 0;
+    font-size: clamp(2.2rem, 11vw, 6rem);
+    font-weight: 900;
+    letter-spacing: 0.14em;
+    line-height: 1;
+    color: #f1c40f;
+    text-shadow:
+      0 4px 28px rgba(241, 196, 64, 0.55),
+      0 0 48px rgba(255, 215, 0, 0.35);
+    animation: blackjack-stamp-pulse 1.15s ease-in-out infinite;
+  }
+
+  @keyframes blackjack-stamp-pulse {
+    0%,
+    100% {
+      transform: scale(1);
+      filter: brightness(1);
+    }
+    50% {
+      transform: scale(1.03);
+      filter: brightness(1.08);
+    }
+  }
+
   .round-end-inner .outcome {
     margin: 0;
     font-size: clamp(3.5rem, 18vw, 12rem);
@@ -127,6 +209,11 @@ body {
     line-height: 0.95;
     letter-spacing: 0.02em;
     text-shadow: 0 6px 32px rgba(0, 0, 0, 0.75);
+  }
+
+  .round-end-inner .blackjack-stamp + .outcome {
+    font-size: clamp(2rem, 9vw, 4rem);
+    margin-top: 0.15em;
   }
 
   .round-end-detail {

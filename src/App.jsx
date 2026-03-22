@@ -88,6 +88,30 @@ export default function App() {
   });
 
   const jazzRef = useRef(null);
+  /** Single instance so mobile browsers can play after one user-activated unlock. */
+  const blackjackAudioRef = useRef(null);
+  const shuffleDelayTimerRef = useRef(null);
+
+  /** Prime HTML5 audio on first gesture (autoplay policy). */
+  useEffect(() => {
+    const unlock = () => {
+      let a = blackjackAudioRef.current;
+      if (!a) {
+        a = new Audio("/sounds/blackjack-made-with-Voicemod.mp3");
+        a.preload = "auto";
+        blackjackAudioRef.current = a;
+      }
+      a.volume = 0;
+      a.play()
+        .then(() => {
+          a.pause();
+          a.currentTime = 0;
+        })
+        .catch(() => {});
+    };
+    window.addEventListener("pointerdown", unlock, { passive: true });
+    return () => window.removeEventListener("pointerdown", unlock);
+  }, []);
 
   useEffect(() => {
     try {
@@ -119,6 +143,18 @@ export default function App() {
     a.play().catch(() => {});
   }, []);
 
+  const playBlackjackVoice = useCallback(() => {
+    let a = blackjackAudioRef.current;
+    if (!a) {
+      a = new Audio("/sounds/blackjack-made-with-Voicemod.mp3");
+      a.preload = "auto";
+      blackjackAudioRef.current = a;
+    }
+    a.volume = 0.9;
+    a.currentTime = 0;
+    void a.play().catch(() => {});
+  }, []);
+
   const flashPlayerAnimate = useCallback(async () => {
     setAnimatePlayerLast(true);
     await delay(480);
@@ -131,9 +167,22 @@ export default function App() {
     setAnimateDealerLast(false);
   }, []);
 
-  const scheduleNextRound = useCallback(() => {
+  const scheduleNextRound = useCallback((options = {}) => {
+    const shuffleDelayMs =
+      typeof options.shuffleDelayMs === "number" ? options.shuffleDelayMs : 0;
     if (nextTimer.current) clearTimeout(nextTimer.current);
-    playShuffleSound();
+    if (shuffleDelayTimerRef.current) {
+      clearTimeout(shuffleDelayTimerRef.current);
+      shuffleDelayTimerRef.current = null;
+    }
+    if (shuffleDelayMs > 0) {
+      shuffleDelayTimerRef.current = setTimeout(() => {
+        shuffleDelayTimerRef.current = null;
+        playShuffleSound();
+      }, shuffleDelayMs);
+    } else {
+      playShuffleSound();
+    }
     nextTimer.current = setTimeout(() => {
       dealRoundRef.current?.();
     }, TIMING.BETWEEN_ROUNDS);
@@ -144,7 +193,7 @@ export default function App() {
    * @param {string} subtitle
    * @param {{ profit?: number, loss?: number, returned?: number }} [money]
    */
-  const finishRound = useCallback((result, subtitle, money = {}) => {
+  const finishRound = useCallback((result, subtitle, money = {}, meta = {}) => {
     setMessage(subtitle);
     setRoundEnd({
       result,
@@ -152,6 +201,7 @@ export default function App() {
       profit: money.profit ?? null,
       loss: money.loss ?? null,
       returned: money.returned ?? null,
+      playerBlackjack: Boolean(meta.playerBlackjack),
     });
   }, []);
 
@@ -331,19 +381,22 @@ export default function App() {
       setDealerPose("idle");
 
       if (pBJ && dBJ) {
+        playBlackjackVoice();
         setBankroll((prev) => prev + wager);
-        finishRound("push", "Both have blackjack — bet returned.", { returned: wager });
+        finishRound("push", "Both have blackjack — bet returned.", { returned: wager }, { playerBlackjack: true });
       } else if (pBJ) {
+        playBlackjackVoice();
         const profit = Math.floor((wager * 3) / 2);
         setBankroll((prev) => prev + wager + profit);
-        finishRound("win", "Blackjack — paid 3:2.", { profit });
+        finishRound("win", "Blackjack — paid 3:2.", { profit }, { playerBlackjack: true });
       } else {
         finishRound("lose", "Dealer has blackjack.", { loss: wager });
       }
 
       dealingRef.current = false;
       setIsDealing(false);
-      scheduleNextRound();
+      /* Let blackjack voice start before shuffle — simultaneous new Audio() fights on iOS. */
+      scheduleNextRound({ shuffleDelayMs: 900 });
       return;
     }
 
@@ -353,7 +406,7 @@ export default function App() {
     setMessage("Your move!");
     dealingRef.current = false;
     setIsDealing(false);
-  }, [bankroll, betStack, iou, pull, scheduleNextRound, finishRound]);
+  }, [bankroll, betStack, iou, pull, scheduleNextRound, finishRound, playBlackjackVoice]);
 
   useEffect(() => {
     dealRoundRef.current = dealRound;
@@ -562,11 +615,33 @@ export default function App() {
             aria-labelledby="round-outcome-title"
             aria-live="polite"
           >
+            {roundEnd.playerBlackjack && (
+              <div className="blackjack-celebration" aria-hidden="true">
+                <div className="blackjack-float-dollars">
+                  {Array.from({ length: 18 }, (_, i) => (
+                    <span key={i} className="money-float">
+                      $
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="round-end-inner">
+              {roundEnd.playerBlackjack && <p className="blackjack-stamp">BLACKJACK</p>}
               <p id="round-outcome-title" className={`outcome outcome-${roundEnd.result}`}>
-                {roundEnd.result === "win" && "You win!"}
-                {roundEnd.result === "lose" && "Dealer wins."}
-                {roundEnd.result === "push" && "Push"}
+                {roundEnd.playerBlackjack ? (
+                  roundEnd.result === "win" ? (
+                    "You win!"
+                  ) : (
+                    "Push"
+                  )
+                ) : (
+                  <>
+                    {roundEnd.result === "win" && "You win!"}
+                    {roundEnd.result === "lose" && "Dealer wins."}
+                    {roundEnd.result === "push" && "Push"}
+                  </>
+                )}
               </p>
               <p className="round-end-detail">{message}</p>
               {roundEnd.profit != null && roundEnd.profit > 0 && (
@@ -661,6 +736,7 @@ export default function App() {
             setBetStack={setBetStack}
             betLocked={betAdjustLocked}
             onBetBlocked={onBetBlocked}
+            nextHandNote={Boolean(roundEnd)}
           />
 
           <div className="dock-section dock-money">

@@ -3,7 +3,13 @@ import { useDrop } from "react-dnd";
 import { ItemTypes } from "./DraggableChip.jsx";
 import { chipsForAmount, sumStack } from "../game/blackjack.js";
 
-export default function BetZone({ betStack, setBetStack, betLocked = false, onBetBlocked }) {
+export default function BetZone({
+  betStack,
+  setBetStack,
+  betLocked = false,
+  onBetBlocked,
+  nextHandNote = false,
+}) {
   const betTotal = sumStack(betStack);
 
   const [, drop] = useDrop(
@@ -35,7 +41,13 @@ export default function BetZone({ betStack, setBetStack, betLocked = false, onBe
     <div ref={drop} className={`bet-zone ${betLocked ? "bet-zone--locked" : ""}`}>
       <p>Bet</p>
       <p className="bet-total">{betTotal}</p>
-      <p className="bet-drop-hint">{betLocked ? "Bet locked during play" : "Drop chips here"}</p>
+      <p className="bet-drop-hint">
+        {betLocked
+          ? "Bet locked during play"
+          : nextHandNote
+            ? "Note: This bet is for your next game."
+            : "Drop chips here"}
+      </p>
       <div className="bet-adjust">
         <button type="button" disabled={betLocked} onClick={() => dec(25)}>
           -25
